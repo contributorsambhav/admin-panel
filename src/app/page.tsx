@@ -1,6 +1,6 @@
 "use client";
-import { PollsCard } from "@/components/pollsCard";
-import { Search } from "@/components/search";
+import { PollsCard } from "@/components/app/polls-card";
+import { Search } from "@/components/app/search";
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import {
@@ -60,6 +60,7 @@ const Page = () => {
   useEffect(() => {
     fetchDataFromFirestore();
   }, []);
+
   return (
     <>
       <div className="w-full  h-[15vh] justify-center items-center flex ">

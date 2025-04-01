@@ -7,8 +7,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import React, { useEffect } from "react";
-import { MemberCard } from "./MemberCard";
-import firebase_app from "../firebaseConfig";
+import { MemberCard } from "../member-card";
+import firebase_app from "../../firebaseConfig";
 import {
   getFirestore,
   collection,

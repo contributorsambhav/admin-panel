@@ -28,8 +28,8 @@ import {
 } from "firebase/firestore";
 import { set } from "firebase/database";
 import { toast } from "react-toastify";
-import TaskModal from "./TaskModal";
-import { ScoreCard } from "./ScoreCard";
+import TaskModal from "./task-modal";
+import { ScoreCard } from "./score-card";
 
 type CardProps = React.ComponentProps<typeof Card>;
 

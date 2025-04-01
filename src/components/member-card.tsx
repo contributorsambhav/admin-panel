@@ -1,3 +1,4 @@
+"use client"
 import { BellRing, Check } from "lucide-react";
 import { Loader2 } from "lucide-react";
 
@@ -27,7 +28,7 @@ import {
 } from "firebase/firestore";
 import { set } from "firebase/database";
 import { toast } from "react-toastify";
-import TaskModal from "./TaskModal";
+import TaskModal from "./app/task-modal";
 
 const notifications: any = [];
 

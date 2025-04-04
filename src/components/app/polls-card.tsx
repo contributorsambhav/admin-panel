@@ -1,6 +1,4 @@
-import { BellRing, Check } from "lucide-react";
-import { Loader2 } from "lucide-react";
-
+import { Check, Info, Award, FilePlus, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,9 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-// import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import React, { useState } from "react";
-import firebase_app from "@/firebaseConfig"; // Add this line prevent firebase not loading error
+import firebase_app from "@/firebaseConfig";
 import {
   getFirestore,
   addDoc,
@@ -24,165 +23,215 @@ import {
   where,
   getDocs,
   query,
-  FieldValue,
 } from "firebase/firestore";
-import { set } from "firebase/database";
 import { toast } from "react-toastify";
 import TaskModal from "./task-modal";
 import { ScoreCard } from "./score-card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 type CardProps = React.ComponentProps<typeof Card>;
 
-export function PollsCard({ className, ...props }: any) {
-  const { team, index, fetchDataFromFirestore } = props;
-  const [voted, setVoted] = useState(false);
+interface TeamData {
+  TeamName: string;
+  isAlive: boolean;
+  score: number;
+  tasks: string[];
+}
+
+interface PollsCardProps extends CardProps {
+  team: TeamData;
+  index: number;
+  fetchDataFromFirestore: () => Promise<void>;
+}
+
+export function PollsCard({ 
+  className, 
+  team, 
+  index, 
+  fetchDataFromFirestore,
+  ...props 
+}: PollsCardProps) {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [scoreModal, setScoreModal] = useState(false);
-  const [p, setp] = useState([]);
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [scoreModalOpen, setScoreModalOpen] = useState(false);
+  const [taskDetails, setTaskDetails] = useState([]);
 
   const increaseTeamScore = async (
     teamName: string,
     taskId: string,
-    scoreinc: string,
+    scoreInc: string,
   ) => {
     try {
       setLoading(true);
-      console.log("teamName", teamName);
-      console.log("taskId", taskId);
       const db = getFirestore(firebase_app);
-      const teamsRef: any = collection(db, "Teams");
-      console.log("teamsRef", teamsRef);
-      // Reference to the Teams collection
-
-      // Create a query to find the team by TeamName
-      const query2 = query(teamsRef, where("TeamName", "==", teamName));
-
-      // Use getDocs to fetch matching documents (expecting at most one)
-      const querySnapshot: any = await getDocs(query2);
-      console.log("querySnapshot", querySnapshot);
+      const teamsRef = collection(db, "Teams");
+      
+      const teamQuery = query(teamsRef, where("TeamName", "==", teamName));
+      const querySnapshot = await getDocs(teamQuery);
 
       if (querySnapshot.size === 1) {
-        const docRef = querySnapshot.docs[0].ref;
-        const currentScore = querySnapshot.docs[0].data().score || 0; // Get current votes or default to 0
-        const currentTasks = querySnapshot.docs[0].data().tasks || []; // Get current votes or default to []
-        const newScore = parseInt(currentScore) + parseInt(scoreinc);
-        // currentTasks.push(taskId);
+        const teamDoc = querySnapshot.docs[0];
+        const currentScore = teamDoc.data().score || 0;
+        const currentTasks = teamDoc.data().tasks || [];
+        const newScore = parseInt(currentScore) + parseInt(scoreInc);
+        
         if (!currentTasks.includes(taskId)) {
-          // taskId is not already in the array, so we can push it
-          currentTasks.push(taskId);
-
-          // Update Firestore document with the new tasks array and updated score
-          await updateDoc(querySnapshot.docs[0].ref, {
-            tasks: currentTasks,
+          const updatedTasks = [...currentTasks, taskId];
+          
+          await updateDoc(teamDoc.ref, {
+            tasks: updatedTasks,
             score: newScore,
           });
 
-          console.log(`Task ${taskId} added successfully.`);
           toast.success(
-            `Team score for ${teamName} increased by ${scoreinc} for Task ID: ${taskId}`,
+            `Team ${teamName} gained ${scoreInc} points for completing task #${taskId}`,
+            { position: "bottom-right" }
           );
-
-          fetchDataFromFirestore();
+          
+          await fetchDataFromFirestore();
         } else {
-          console.log(`Task ${taskId} already exists in the tasks array.`);
-          toast.error(`Task ${taskId} already exists in the tasks array.`);
+          toast.error(`Task #${taskId} has already been recorded for this team`);
         }
-
-        // Get the first document
-
-        // Update score and push task ID atomically
-        // await updateDoc(docRef, { score: newScore, tasks: currentTasks});
-
-        // console.log(`Team score for ${teamName} increased by ${scoreinc} for Task ID: ${taskId}`);
-        setLoading(false);
       } else {
-        console.error(`Team not found with name: ${teamName}`);
-        toast.error(`Team not found with name: ${teamName}`);
-        setLoading(false);
+        toast.error(`Couldn't find team: ${teamName}`);
       }
     } catch (error) {
       console.error("Error updating team score:", error);
-      toast.error("Error updating team score");
+      toast.error("Failed to update team score");
+    } finally {
       setLoading(false);
-      // Handle error (e.g., show error message to user)
     }
   };
 
+  const getTeamRankClass = (index: number) => {
+    if (index === 0) return "bg-yellow-100 dark:bg-yellow-900";
+    if (index === 1) return "bg-gray-100 dark:bg-gray-800";
+    if (index === 2) return "bg-amber-100 dark:bg-amber-900";
+    return "";
+  };
+
   return (
-    <Card className={cn("w-[80vw] mb-[20px]", className)} {...props}>
-      <CardHeader>
-        <CardTitle>
-          #{index + 1}{" "}
-          <span className={team.isAlive ? "" : "line-through"}>
-            {team.TeamName}
-          </span>
-          <span className="text-[red] ml-[7px]">
-            {!team.isAlive ? "Eliminated" : ""}
-          </span>
-        </CardTitle>
-        <CardDescription>
-          Score : {team.score} || Tasks Completed : {team.tasks.length}
+    <Card 
+      className={cn(
+        "w-full max-w-3xl transition-all duration-300 hover:shadow-md", 
+        getTeamRankClass(index),
+        className
+      )} 
+      {...props}
+    >
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Badge variant={index < 3 ? "default" : "outline"} className="h-6 w-6 rounded-full p-0 flex items-center justify-center">
+              {index + 1}
+            </Badge>
+            <CardTitle className={cn(
+              "text-xl flex items-center gap-2",
+              !team.isAlive && "text-gray-500"
+            )}>
+              <span className={team.isAlive ? "" : "line-through"}>
+                {team.TeamName}
+              </span>
+              {!team.isAlive && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="destructive" className="text-xs">Eliminated</Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>This team has been eliminated from the competition</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </CardTitle>
+          </div>
+        </div>
+        <CardDescription className="flex items-center gap-4 mt-1">
+          <HoverCard>
+            <HoverCardTrigger asChild>
+              <div className="flex items-center gap-1 cursor-help">
+                <Award className="h-4 w-4" />
+                <span>Score: {team.score}</span>
+              </div>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-80">
+              <div className="flex justify-between space-y-1">
+                <span className="text-sm font-medium">Score Breakdown</span>
+                <span className="text-sm text-muted-foreground">Total: {team.score}</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Points are awarded for each completed task based on difficulty level
+              </div>
+            </HoverCardContent>
+          </HoverCard>
+
+          <div className="flex items-center gap-1">
+            <Activity className="h-4 w-4" />
+            <span>Tasks: {team.tasks.length}</span>
+          </div>
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-4">
-        {/* <div className=" flex items-center space-x-4 rounded-md border p-4">
-          <BellRing />
-          <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium leading-none">
-              Push Notifications
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Send notifications to device.
-            </p>
-          </div>
-          <Switch />
-        </div> */}
-        <div>
+      
+      <CardContent>
+        <div className="flex flex-wrap gap-2">
           <Button
-            className="me-[15px]"
-            onClick={() => {
-              setOpen(true);
-            }}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+            onClick={() => setTaskModalOpen(true)}
+            disabled={loading}
           >
+            <Info className="h-4 w-4" />
             View Details
           </Button>
+          
           <Button
-            onClick={() => {
-              setScoreModal(true);
-            }}
+            variant="default"
+            size="sm"
+            className="flex items-center gap-2"
+            onClick={() => setScoreModalOpen(true)}
+            disabled={loading || !team.isAlive}
           >
-            Add Score
+            {loading ? (
+              <>
+                <Skeleton className="h-4 w-4 rounded-full" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <FilePlus className="h-4 w-4" />
+                Add Score
+              </>
+            )}
           </Button>
-
-          <TaskModal open={open} setOpen={setOpen}></TaskModal>
-
-          <ScoreCard
-            scoreModal={scoreModal}
-            setScoreModal={setScoreModal}
-          ></ScoreCard>
-
-          <TaskModal
-            open={open}
-            setOpen={setOpen}
-            team={team}
-            setP={setp}
-          ></TaskModal>
-
-          <ScoreCard
-            scoreModal={scoreModal}
-            setScoreModal={setScoreModal}
-            increaseTeamScore={increaseTeamScore}
-            team={team}
-          ></ScoreCard>
         </div>
       </CardContent>
-      {/* <CardFooter>
-        <Button className="w-full">
-          <Check className="mr-2 h-4 w-4" /> Mark all as read
-        </Button>
-      </CardFooter> */}
+
+      {/* Modals */}
+      <TaskModal
+        open={taskModalOpen}
+        setOpen={setTaskModalOpen}
+        team={team}
+        setP={setTaskDetails}
+      />
+
+      <ScoreCard
+        scoreModal={scoreModalOpen}
+        setScoreModal={setScoreModalOpen}
+        increaseTeamScore={increaseTeamScore}
+        team={team}
+      />
     </Card>
   );
 }

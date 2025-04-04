@@ -83,11 +83,12 @@ const Page = () => {
           searchText={searchText}
         ></Search>
       </div>
-      <div className="flex flex-col w-full items-center overflow-y-auto h-[85vh]">
+      <div className="flex flex-col w-full my-4 items-center overflow-y-auto h-[85vh]">
         {filteredUsers
           .sort((a, b) => b.score - a.score)
           .map((team, index) => (
             <PollsCard
+            className="my-4"
               key={team.id}
               team={team}
               index={index}

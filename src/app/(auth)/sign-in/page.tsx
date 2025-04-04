@@ -2,10 +2,8 @@ import SignInWithGoogle from "@/components/app/buttons/sign-in-with-google";
 import { getSession } from "@/lib/data";
 import { redirect } from "next/navigation";
 export default async function SignInPage() {
-  const session = await getSession();
-  if (session?.id) {
-    redirect("/");
-  }
+  
+  // const session = await getSession();
 
   return (
     <div className="flex justify-center items-center h-screen">

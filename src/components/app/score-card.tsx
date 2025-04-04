@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { set } from "firebase/database";
 
 export function ScoreCard(props) {
   const { scoreModal, setScoreModal, increaseTeamScore, loading, team } = props;
@@ -20,10 +19,33 @@ export function ScoreCard(props) {
   const [taskId, setTaskId] = useState("");
   const [score, setScore] = useState("");
 
+  useEffect(() => {
+    async function logSession() {
+      try {
+        const response = await fetch("/api/session", { method: "GET" });
+        const data = await response.json();
+        console.log("Session details:", data.session);
+        if (data.session.email) {
+          setVolunteerId(data.session.email);
+        }
+        if (data.session.name) {
+          setName(data.session.name);
+
+        }else{
+          if (data.session.email) {
+            setName(data.session.email.split("@")[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching session:", error);
+      }
+    }
+    logSession();
+  }, []);
+
   // Handle form submission
-  const handleSubmit = async (event: any) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    // Perform form submission logic here (e.g., send data to backend)
     console.log("Form submitted with data:", {
       name,
       volunteerId,
@@ -34,8 +56,6 @@ export function ScoreCard(props) {
 
     // Close the dialog modal after form submission
     setScoreModal(false);
-    setName("");
-    setVolunteerId("");
     setTaskId("");
     setScore("");
   };
@@ -48,33 +68,21 @@ export function ScoreCard(props) {
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
+            {/* Read-only display for Name */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Your Name
-              </Label>
-              <Input
-                id="name"
-                placeholder="Enter your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="col-span-3"
-                required
-                type="text"
-              />
+              <Label className="text-right">Your Name</Label>
+              <div className="col-span-3 py-2 px-3 border border-gray-300 rounded">
+                {name || "Loading..."}
+              </div>
             </div>
+            {/* Read-only display for Volunteer Id */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="volunteerId" className="text-right">
-                Volunteer Id
-              </Label>
-              <Input
-                id="volunteerId"
-                placeholder="Enter your volunteer id"
-                value={volunteerId}
-                onChange={(e) => setVolunteerId(e.target.value)}
-                className="col-span-3"
-                type="number"
-              />
+              <Label className="text-right">Volunteer Id</Label>
+              <div className="col-span-3 py-2 px-3 border border-gray-300 rounded">
+                {volunteerId || "Loading..."}
+              </div>
             </div>
+            {/* Editable input for Task Id */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="taskId" className="text-right">
                 Task Id
@@ -89,6 +97,7 @@ export function ScoreCard(props) {
                 type="text"
               />
             </div>
+            {/* Editable input for Score */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="score" className="text-right">
                 Score

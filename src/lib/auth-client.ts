@@ -5,6 +5,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 export const { signIn, signOut, signUp, useSession } = createAuthClient({
-  baseURL: process.env.BASE_URL! as string,
+  baseURL: "https://admin-panel-iota-blond.vercel.app/" as string,
   plugins: [customSessionClient<typeof auth>()],
 });

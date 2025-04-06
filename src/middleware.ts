@@ -25,7 +25,13 @@ const admin_emails = ["sambhav511974@gmail.com",
 "lokeshjaiswal772705@gmail.com",
 "harshsaini0107@gmail.com",
 "22bma007@nith.ac.in",
-"varshneyanurag125@gmail.com"] 
+"varshneyanurag125@gmail.com",
+"iamanubhav309@gmail.com",
+"mishrapreyanshu@gmail.com",
+"482ankityadav@gmail.com",
+"tripathiprashant45678@gmail.com",
+"anshitasiroya@gmail.com",
+"mahajanrajinderkumar07@gmail.com"] 
 
 export default async function authMiddleware(request: NextRequest) {
   // extracting out full path of the url except base url
